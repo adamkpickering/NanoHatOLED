@@ -5,7 +5,7 @@ if [ $(id -u) -ne 0 ]; then
   exit 1
 fi
 
-gcc Source/daemonize.c Source/main.c -lrt -lpthread -o NanoHatOLED
+gcc src/daemonize.c src/main.c -lrt -lpthread -o NanoHatOLED
 
 if [ ! -f /usr/local/bin/oled-start ]; then
     cat >/usr/local/bin/oled-start <<EOL
@@ -25,4 +25,3 @@ fi
 
 cd BakeBit/Script/
 sudo ./install.sh
-
