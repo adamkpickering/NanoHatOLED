@@ -116,7 +116,7 @@ void* threadfunc(char* arg) {
 int load_python_view() {
     int ret;
     char* cmd = (char*)malloc(255);
-    sprintf(cmd, "cd %s/src/ && python %s 2>&1 | tee /tmp/nanoled-python.log", workpath, python_file);
+    sprintf(cmd, "cd %s/src && python %s 2>&1 | tee /tmp/nanoled-python.log", workpath, python_file);
     ret = pthread_create(&view_thread_id, NULL, (void*)threadfunc,cmd);
     if(ret) {
         log2file("create pthread error \n");

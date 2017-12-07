@@ -15,7 +15,7 @@ import socket
 
 class NanoHatOled(object):
     
-    def __init__(self, K1_action=None, K2_action=None, K3_action=None):
+    def __init__(self):
         self.width = 128
         self.height = 64
         self.padding = 1
@@ -30,22 +30,29 @@ class NanoHatOled(object):
         oled.setNormalDisplay()      #Set display to normal mode (i.e non-inverse mode)
         oled.setHorizontalMode()
         self.telusSlogan()
-        if K1_action is None:
-            K1_action = self.defaultAction
-        if K2_action is None:
-            K2_action = self.defaultAction
-        if K3_action is None:
-            K3_action = self.defaultAction
-        signal.signal(signal.SIGUSR1, K1_action) # button 1 (left)
-        signal.signal(signal.SIGUSR2, K2_action) # button 2 (middle)
-        signal.signal(signal.SIGALRM, K3_action) # button 3 (right)
+        signal.signal(signal.SIGUSR1, self.receiveSignal) # button 1 (left)
+        signal.signal(signal.SIGUSR2, self.receiveSignal) # button 2 (middle)
+        signal.signal(signal.SIGALRM, self.receiveSignal) # button 3 (right)
+
+    def receiveSignal(self, signum, stack):
+        if signum == signal.SIGUSR1:
+            print("K1 pressed")
+            self.one_line()
+        elif signum == signal.SIGUSR2:
+            print("K2 pressed")
+            self.three_lines()
+        elif signum == signal.SIGALRM:
+            print("K3 pressed")
+            self.four_lines()
+        else:
+            pass
 
     def drawPage(self, text_array):
         if len(text_array) == 1:
             self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
         if len(text_array) == 2:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font14, fill=255)
+            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font14, fill=255)
         if len(text_array) == 3:
             self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
             self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
@@ -68,8 +75,8 @@ class NanoHatOled(object):
         # clear current image
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
-    def defaultAction(self, signum, stack):
-        self.drawPage(["Action not defined"])
+    def defaultAction(self):
+        self.drawPage(["Action", "not defined"])
         time.sleep(2)
         self.telusSlogan()
 
@@ -79,6 +86,33 @@ class NanoHatOled(object):
         self.draw.text((self.padding+19, self.padding+44), "is Friendly", font=self.font14, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
+    # for testing purposes
+    def one_line(self):
+        self.drawPage(["Line one"])
+        time.sleep(2)
+        self.telusSlogan()
+
+    def two_lines(self):
+        self.drawPage(["Line one",
+                       "Line four"])
+        time.sleep(2)
+        self.telusSlogan()
+
+    def three_lines(self):
+        self.drawPage(["Line one",
+                       "Line two",
+                       "Line three"])
+        time.sleep(2)
+        self.telusSlogan()
+
+    def four_lines(self):
+        self.drawPage(["Line one",
+                       "Line two",
+                       "Line three",
+                       "Line four"])
+        time.sleep(2)
+        self.telusSlogan()
 
 
 def get_ip():
@@ -92,7 +126,8 @@ def get_ip():
     finally:
         s.close()
     return IP
-        
+
+
 
 #
 #def draw_page():
@@ -210,4 +245,5 @@ def get_ip():
 
 if __name__ == "__main__":
     nanohat = NanoHatOled()
-    signal.pause()
+    while True:
+        signal.pause()
