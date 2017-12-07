@@ -64,7 +64,7 @@ class NanoHatOled(object):
                 self.sdPage()
             else:
                 pass
-        elif self.page == 2: # shut down page
+        elif self.page == 2: # shut down check page
             if signum == signal.SIGUSR1:
                 print("K1 pressed")
                 self.shutDown()
@@ -76,6 +76,15 @@ class NanoHatOled(object):
                 self.ipPage()
             else:
                 pass
+
+    def telusSlogan(self):
+        """Prints the Telus slogan"""
+        self.draw.text((self.padding+26, self.padding), "TELUS", font=self.font24b, fill=255)
+        self.draw.text((self.padding+22, self.padding+30), "The Future", font=self.font14, fill=255)
+        self.draw.text((self.padding+19, self.padding+44), "is Friendly", font=self.font14, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
             
     def ipPage(self):
         """Gets and displays the IP address"""
@@ -157,84 +166,12 @@ class NanoHatOled(object):
 
     def shutDown(self):
         """Actual shut down page"""
-        text = "shutting down..."
-        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
-        oled.drawImage(self.image)
+        #text = "shutting down..."
+        #self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-        os.system('systemctl poweroff')
-
-    def drawPage(self, text_array):
-        """The idea here was that you could pass a list of strings and the method would take care of
-        everything for you. The first string would go on line 1, the second on line 2, etc. Currently
-        unfinished."""
-        if len(text_array) == 1:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
-        if len(text_array) == 2:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font14, fill=255)
-            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font14, fill=255)
-        if len(text_array) == 3:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
-        if len(text_array) == 4:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+36), text_array[3],  font=self.font10b, fill=255)
-        if len(text_array) == 5:
-            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+36), text_array[3],  font=self.font10b, fill=255)
-            self.draw.text((self.padding, self.padding+48), text_array[4],  font=self.font10b, fill=255)
-        else:
-            pass
-        # output finished image to oled
         oled.drawImage(self.image)
-        # clear current image (here rather than before to increase responsiveness)
-        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-
-    def notDefined(self):
-        self.drawPage(["Action", "not defined"])
-        time.sleep(2)
-        self.telusSlogan()
-
-    def telusSlogan(self):
-        self.draw.text((self.padding+26, self.padding), "TELUS", font=self.font24b, fill=255)
-        self.draw.text((self.padding+22, self.padding+30), "The Future", font=self.font14, fill=255)
-        self.draw.text((self.padding+19, self.padding+44), "is Friendly", font=self.font14, fill=255)
-        oled.drawImage(self.image)
-        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-
-    # for testing purposes
-    def one_line(self):
-        self.drawPage(["Line one"])
-        time.sleep(2)
-        self.telusSlogan()
-
-    # for testing purposes
-    def two_lines(self):
-        self.drawPage(["Line one",
-                       "Line four"])
-        time.sleep(2)
-        self.telusSlogan()
-
-    # for testing purposes
-    def three_lines(self):
-        self.drawPage(["Line one",
-                       "Line two",
-                       "Line three"])
-        time.sleep(2)
-        self.telusSlogan()
-
-    # for testing purposes
-    def four_lines(self):
-        self.drawPage(["Line one",
-                       "Line two",
-                       "Line three",
-                       "Line four"])
-        time.sleep(2)
-        self.telusSlogan()
+        #self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        os.system('sudo poweroff')
 
 
 def get_ip():
