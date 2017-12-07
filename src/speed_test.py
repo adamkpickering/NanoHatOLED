@@ -11,6 +11,7 @@ import threading
 import signal
 import os
 import socket
+import iperf3
 
 
 class NanoHatOled(object):
@@ -21,6 +22,8 @@ class NanoHatOled(object):
         self.height = 64
         self.padding = 1
         self.page = 0
+        self.iperf_duration = 10
+        self.iperf_server = '192.168.1.72'
         self.image = Image.new('1', (self.width, self.height))
         self.draw = ImageDraw.Draw(self.image)
         self.font10b = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 10)
@@ -114,21 +117,29 @@ class NanoHatOled(object):
         # set page to 1
         self.page = 1
         # display 'testing down...'
-        text = "testing down..."
+        text = "Testing down..."
         self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do down test
-        down = 855
+        client = iperf3.Client()
+        client.duration = self.iperf_duration
+        client.server_hostname = self.iperf_server
+        #client.port = 5201
+        client.reverse = True
+        result = client.run()
+        down = int(round(result.sent_Mbps))
         # display 'testing up'
-        text = "testing up..."
+        text = "Testing up..."
         self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do up test
-        up = 904
+        client.reverse = False
+        result = client.run()
+        up = int(round(result.sent_Mbps))
         # display 'testing jitter'
-        text = "testing jitter..."
+        text = "Testing jitter..."
         self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
@@ -150,12 +161,16 @@ class NanoHatOled(object):
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
+
+result = client.run()
+print(int(round(result.sent_Mbps)))
+
     def sdPage(self):
         """Shut down check page"""
         # set page to 2
         self.page = 2
         # display page
-        text = "shut down?"
+        text = "Shut down?"
         self.draw.text((self.padding+20, self.padding+18), text,  font=self.font14b, fill=255)
         text = "yes"
         self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
@@ -187,8 +202,7 @@ def get_ip():
     return IP
 
 
-def iperf3_test():
-    pass
+
 
 
 #while True:
