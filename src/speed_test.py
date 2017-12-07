@@ -133,13 +133,13 @@ class NanoHatOled(object):
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do jitter test
-        jitter = "45%"
+        jitter = "45"
         # display results
-        text = "down: {0}".format(down)
+        text = "down: {0} Mbit/s".format(down)
         self.draw.text((self.padding, self.padding), text,  font=self.font10b, fill=255)
-        text = "up: {0}".format(up)
+        text = "up: {0} Mbit/s".format(up)
         self.draw.text((self.padding, self.padding+12), text,  font=self.font10b, fill=255)
-        text = "jitter: {0}".format(jitter)
+        text = "jitter: {0} ms".format(jitter)
         self.draw.text((self.padding, self.padding+24), text,  font=self.font10b, fill=255)
         text = "ip"
         self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
@@ -186,6 +186,9 @@ def get_ip():
         s.close()
     return IP
 
+
+def iperf3_test():
+    pass
 
 
 #while True:
