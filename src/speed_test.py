@@ -14,40 +14,159 @@ import socket
 
 
 class NanoHatOled(object):
+    """Object for interfacing to the nanohat's OLED display and buttons."""
     
     def __init__(self):
         self.width = 128
         self.height = 64
         self.padding = 1
+        self.page = 0
         self.image = Image.new('1', (self.width, self.height))
         self.draw = ImageDraw.Draw(self.image)
         self.font10b = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 10)
         self.font11 = ImageFont.truetype('DejaVuSansMono.ttf', 11)
         self.font14 = ImageFont.truetype('DejaVuSansMono.ttf', 14)
-        self.fontb14 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 14)
-        self.fontb24 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 24)
+        self.font14b = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 14)
+        self.font24b = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 24)
         oled.init()
         oled.setNormalDisplay()      #Set display to normal mode (i.e non-inverse mode)
         oled.setHorizontalMode()
         self.telusSlogan()
+        time.sleep(2)
+        self.ipPage()
         signal.signal(signal.SIGUSR1, self.receiveSignal) # button 1 (left)
         signal.signal(signal.SIGUSR2, self.receiveSignal) # button 2 (middle)
         signal.signal(signal.SIGALRM, self.receiveSignal) # button 3 (right)
 
     def receiveSignal(self, signum, stack):
-        if signum == signal.SIGUSR1:
-            print("K1 pressed")
-            self.one_line()
-        elif signum == signal.SIGUSR2:
-            print("K2 pressed")
-            self.three_lines()
-        elif signum == signal.SIGALRM:
-            print("K3 pressed")
-            self.four_lines()
-        else:
-            pass
+        """Called whenever a signal is received."""
+        if self.page == 0: # default page, get and display IP
+            if signum == signal.SIGUSR1:
+                print("K1 pressed")
+                self.ipPage()
+            elif signum == signal.SIGUSR2:
+                print("K2 pressed")
+                self.testPage()
+            elif signum == signal.SIGALRM:
+                print("K3 pressed")
+                self.sdPage()
+            else:
+                pass
+        elif self.page == 1: # iperf test page
+            if signum == signal.SIGUSR1:
+                print("K1 pressed")
+                self.ipPage()
+            elif signum == signal.SIGUSR2:
+                print("K2 pressed")
+                self.testPage()
+            elif signum == signal.SIGALRM:
+                print("K3 pressed")
+                self.sdPage()
+            else:
+                pass
+        elif self.page == 2: # shut down page
+            if signum == signal.SIGUSR1:
+                print("K1 pressed")
+                self.shutDown()
+            elif signum == signal.SIGUSR2:
+                print("K2 pressed")
+                pass
+            elif signum == signal.SIGALRM:
+                print("K3 pressed")
+                self.ipPage()
+            else:
+                pass
+            
+    def ipPage(self):
+        """Gets and displays the IP address"""
+        # set page to 0
+        self.page = 0
+        # display 'getting IP...'
+        #text = "getting IP..."
+        #self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        #oled.drawImage(self.image)
+        #self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        # get ip
+        ip_addr = get_ip()
+        # display ip address
+        text = "IP: {0}".format(ip_addr)
+        self.draw.text((self.padding, self.padding), text,  font=self.font10b, fill=255)
+        text = "ip"
+        self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
+        text = "test"
+        self.draw.text((self.padding+50, self.padding+50), text,  font=self.font10b, fill=255)
+        text = "sd"
+        self.draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
+    def testPage(self):
+        """Performs iperf test and displays results"""
+        # set page to 1
+        self.page = 1
+        # display 'testing down...'
+        text = "testing down..."
+        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        # do down test
+        down = 855
+        # display 'testing up'
+        text = "testing up..."
+        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        # do up test
+        up = 904
+        # display 'testing jitter'
+        text = "testing jitter..."
+        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        # do jitter test
+        jitter = "45%"
+        # display results
+        text = "down: {0}".format(down)
+        self.draw.text((self.padding, self.padding), text,  font=self.font10b, fill=255)
+        text = "up: {0}".format(up)
+        self.draw.text((self.padding, self.padding+12), text,  font=self.font10b, fill=255)
+        text = "jitter: {0}".format(jitter)
+        self.draw.text((self.padding, self.padding+24), text,  font=self.font10b, fill=255)
+        text = "ip"
+        self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
+        text = "test"
+        self.draw.text((self.padding+50, self.padding+50), text,  font=self.font10b, fill=255)
+        text = "sd"
+        self.draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
+    def sdPage(self):
+        """Shut down check page"""
+        # set page to 2
+        self.page = 2
+        # display page
+        text = "shut down?"
+        self.draw.text((self.padding+20, self.padding+18), text,  font=self.font14b, fill=255)
+        text = "yes"
+        self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
+        text = "no"
+        self.draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
+    def shutDown(self):
+        """Actual shut down page"""
+        text = "shutting down..."
+        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        os.system('systemctl poweroff')
 
     def drawPage(self, text_array):
+        """The idea here was that you could pass a list of strings and the method would take care of
+        everything for you. The first string would go on line 1, the second on line 2, etc. Currently
+        unfinished."""
         if len(text_array) == 1:
             self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
         if len(text_array) == 2:
@@ -72,16 +191,16 @@ class NanoHatOled(object):
             pass
         # output finished image to oled
         oled.drawImage(self.image)
-        # clear current image
+        # clear current image (here rather than before to increase responsiveness)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
-    def defaultAction(self):
+    def notDefined(self):
         self.drawPage(["Action", "not defined"])
         time.sleep(2)
         self.telusSlogan()
 
     def telusSlogan(self):
-        self.draw.text((self.padding+26, self.padding), "TELUS", font=self.fontb24, fill=255)
+        self.draw.text((self.padding+26, self.padding), "TELUS", font=self.font24b, fill=255)
         self.draw.text((self.padding+22, self.padding+30), "The Future", font=self.font14, fill=255)
         self.draw.text((self.padding+19, self.padding+44), "is Friendly", font=self.font14, fill=255)
         oled.drawImage(self.image)
@@ -93,12 +212,14 @@ class NanoHatOled(object):
         time.sleep(2)
         self.telusSlogan()
 
+    # for testing purposes
     def two_lines(self):
         self.drawPage(["Line one",
                        "Line four"])
         time.sleep(2)
         self.telusSlogan()
 
+    # for testing purposes
     def three_lines(self):
         self.drawPage(["Line one",
                        "Line two",
@@ -106,6 +227,7 @@ class NanoHatOled(object):
         time.sleep(2)
         self.telusSlogan()
 
+    # for testing purposes
     def four_lines(self):
         self.drawPage(["Line one",
                        "Line two",
@@ -129,88 +251,6 @@ def get_ip():
 
 
 
-#
-#def draw_page():
-#    
-#    # Draw current page indicator
-#    if showPageIndicator:
-#        dotWidth=4
-#        dotPadding=2
-#        dotX=width-dotWidth-1
-#        dotTop=(height-pageCount*dotWidth-(pageCount-1)*dotPadding)/2
-#        for i in range(pageCount):
-#            if i==page_index:
-#                draw.rectangle((dotX, dotTop, dotX+dotWidth, dotTop+dotWidth), outline=255, fill=255)
-#            else:
-#                draw.rectangle((dotX, dotTop, dotX+dotWidth, dotTop+dotWidth), outline=255, fill=0)
-#            dotTop=dotTop+dotWidth+dotPadding
-#
-#    if page_index==0:
-#        text = time.strftime("%A")
-#        draw.text((2,2),text,font=font14,fill=255)
-#        text = time.strftime("%e %b %Y")
-#        draw.text((2,18),text,font=font14,fill=255)
-#        text = time.strftime("%X")
-#        draw.text((2,40),text,font=fontb24,fill=255)
-#    elif page_index==1:
-#        # Draw some shapes.
-#        # First define some constants to allow easy resizing of shapes.
-#        padding = 2
-#        top = padding
-#        bottom = height-padding
-#        # Move left to right keeping track of the current x position for drawing shapes.
-#        x = 0
-#	IPAddress = get_ip()
-#        cmd = "top -bn1 | grep load | awk '{printf \"CPU Load: %.2f\", $(NF-2)}'"
-#        CPU = subprocess.check_output(cmd, shell = True )
-#        cmd = "free -m | awk 'NR==2{printf \"Mem: %s/%sMB %.2f%%\", $3,$2,$3*100/$2 }'"
-#        MemUsage = subprocess.check_output(cmd, shell = True )
-#        cmd = "df -h | awk '$NF==\"/\"{printf \"Disk: %d/%dGB %s\", $3,$2,$5}'"
-#        Disk = subprocess.check_output(cmd, shell = True )
-#        tempI = int(open('/sys/class/thermal/thermal_zone0/temp').read());
-#        if tempI>1000:
-#            tempI = tempI/1000
-#        tempStr = "CPU TEMP: %sC" % str(tempI)
-#
-#        draw.text((x, top+5),       "IP: " + str(IPAddress),  font=smartFont, fill=255)
-#        draw.text((x, top+5+12),    str(CPU), font=smartFont, fill=255)
-#        draw.text((x, top+5+24),    str(MemUsage),  font=smartFont, fill=255)
-#        draw.text((x, top+5+36),    str(Disk),  font=smartFont, fill=255)
-#        draw.text((x, top+5+48),    tempStr,  font=smartFont, fill=255)
-#    elif page_index==3: #shutdown -- no
-#        draw.text((2, 2),  'Shutdown?',  font=fontb14, fill=255)
-#
-#        draw.rectangle((2,20,width-4,20+16), outline=0, fill=0)
-#        draw.text((4, 22),  'Yes',  font=font11, fill=255)
-#
-#        draw.rectangle((2,38,width-4,38+16), outline=0, fill=255)
-#        draw.text((4, 40),  'No',  font=font11, fill=0)
-#
-#    elif page_index==4: #shutdown -- yes
-#        draw.text((2, 2),  'Shutdown?',  font=fontb14, fill=255)
-#
-#        draw.rectangle((2,20,width-4,20+16), outline=0, fill=255)
-#        draw.text((4, 22),  'Yes',  font=font11, fill=0)
-#
-#        draw.rectangle((2,38,width-4,38+16), outline=0, fill=0)
-#        draw.text((4, 40),  'No',  font=font11, fill=255)
-#
-#    elif page_index==5:
-#        draw.text((2, 2),  'Shutting down',  font=fontb14, fill=255)
-#        draw.text((2, 20),  'Please wait',  font=font11, fill=255)
-#
-#    oled.drawImage(image)
-#
-#    lock.acquire()
-#    drawing = False
-#    lock.release()
-#
-#
-#image0 = Image.open('friendllyelec.png').convert('1')
-#oled.drawImage(image0)
-#time.sleep(2)
-#
-#
 #while True:
 #    try:
 #        draw_page()
