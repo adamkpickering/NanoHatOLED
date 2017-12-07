@@ -11,15 +11,9 @@ if [ ! -d "$RESULTS_FOLDER" ]; then
     mkdir "$RESULTS_FOLDER"
 fi
 
-# print "Testing connection..."
 # perform iperf test
 DOWN_BWIDTH=$(iperf3 -c $IPERF_SERVER -R -P 4 -t $LOG_TIME | awk '$NF=="sender" && $1=="[SUM]" { print $6 }')
 UP_BWIDTH=$(iperf3 -c $IPERF_SERVER -t $LOG_TIME | awk '$NF=="sender" { print $7 }')
 
-# print "Test completed."
-
 # append results to log file
 echo $(date "+%T") $DOWN_BWIDTH $UP_BWIDTH >> $LOG_TO
-
-# wait 2 seconds
-# return to normal screen

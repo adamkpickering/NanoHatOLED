@@ -3,9 +3,7 @@
 #
 
 import bakebit_128_64_oled as oled
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
+from PIL import Image, ImageFont, ImageDraw
 import time
 import sys
 import subprocess
@@ -13,6 +11,74 @@ import threading
 import signal
 import os
 import socket
+
+
+class NanoHatOled(object):
+    
+    def __init__(self, K1_action=None, K2_action=None, K3_action=None):
+        self.width = 128
+        self.height = 64
+        self.padding = 1
+        self.image = Image.new('1', (self.width, self.height))
+        self.draw = ImageDraw.Draw(self.image)
+        self.font10b = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 10)
+        self.font11 = ImageFont.truetype('DejaVuSansMono.ttf', 11)
+        self.font14 = ImageFont.truetype('DejaVuSansMono.ttf', 14)
+        self.fontb14 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 14)
+        self.fontb24 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 24)
+        oled.init()
+        oled.setNormalDisplay()      #Set display to normal mode (i.e non-inverse mode)
+        oled.setHorizontalMode()
+        self.telusSlogan()
+        if K1_action is None:
+            K1_action = self.defaultAction
+        if K2_action is None:
+            K2_action = self.defaultAction
+        if K3_action is None:
+            K3_action = self.defaultAction
+        signal.signal(signal.SIGUSR1, K1_action) # button 1 (left)
+        signal.signal(signal.SIGUSR2, K2_action) # button 2 (middle)
+        signal.signal(signal.SIGALRM, K3_action) # button 3 (right)
+
+    def drawPage(self, text_array):
+        if len(text_array) == 1:
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
+        if len(text_array) == 2:
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
+        if len(text_array) == 3:
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
+        if len(text_array) == 4:
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+36), text_array[3],  font=self.font10b, fill=255)
+        if len(text_array) == 5:
+            self.draw.text((self.padding, self.padding), text_array[0],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+12), text_array[1], font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+24), text_array[2],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+36), text_array[3],  font=self.font10b, fill=255)
+            self.draw.text((self.padding, self.padding+48), text_array[4],  font=self.font10b, fill=255)
+        else:
+            pass
+        # output finished image to oled
+        oled.drawImage(self.image)
+        # clear current image
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+
+    def defaultAction(self, signum, stack):
+        self.drawPage(["Action not defined"])
+        time.sleep(2)
+        self.telusSlogan()
+
+    def telusSlogan(self):
+        self.draw.text((self.padding+26, self.padding), "TELUS", font=self.fontb24, fill=255)
+        self.draw.text((self.padding+22, self.padding+30), "The Future", font=self.font14, fill=255)
+        self.draw.text((self.padding+19, self.padding+44), "is Friendly", font=self.font14, fill=255)
+        oled.drawImage(self.image)
+        self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
 
 def get_ip():
@@ -26,122 +92,11 @@ def get_ip():
     finally:
         s.close()
     return IP
+        
 
-
-class NanoHatOled(object):
-    
-    def __init__(self):
-        self.width = 128
-        self.height = 64
-        oled.init()
-        oled.setNormalDisplay()      #Set display to normal mode (i.e non-inverse mode)
-        oled.setHorizontalMode()
-        # make signals
-        signal.signal(signal.SIGUSR1, self.receive_signal) # button 1 (left)
-        signal.signal(signal.SIGUSR2, self.receive_signal) # button 2 (middle)
-        signal.signal(signal.SIGALRM, self.receive_signal) # button 3 (right)
-
-    def draw_page(self):
-        # one line
-        # two lines
-        # three lines
-        # four lines
-        # five lines
-
-    def receive_signal(self, signum, stack):
-        global pageIndex
-
-        lock.acquire()
-        page_index = pageIndex
-        lock.release()
-
-        if page_index==5:
-            return
-
-        if signum == signal.SIGUSR1:
-            print 'K1 pressed'
-            if is_showing_power_msgbox():
-                if page_index==3:
-                    update_page_index(4)
-                else:
-                    update_page_index(3)
-                draw_page()
-            else:
-                pageIndex=0
-                draw_page()
-
-        if signum == signal.SIGUSR2:
-            print 'K2 pressed'
-            if is_showing_power_msgbox():
-                if page_index==4:
-                    update_page_index(5)
-                    draw_page()
-     
-                else:
-                    update_page_index(0)
-                    draw_page()
-            else:
-                update_page_index(1)
-                draw_page()
-
-        if signum == signal.SIGALRM:
-            print 'K3 pressed'
-            if is_showing_power_msgbox():
-                update_page_index(0)
-                draw_page()
-            else:
-                update_page_index(3)
-                draw_page()
-
-
-#pageCount=2
-#pageIndex=0
-#showPageIndicator=False
-#
-#drawing = False
-#
-#image = Image.new('1', (width, height))
-#draw = ImageDraw.Draw(image)
-#fontb24 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 24);
-#font14 = ImageFont.truetype('DejaVuSansMono.ttf', 14);
-#smartFont = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 10);
-#fontb14 = ImageFont.truetype('DejaVuSansMono-Bold.ttf', 14);
-#font11 = ImageFont.truetype('DejaVuSansMono.ttf', 11);
-#
-## get rid of this
-#lock = threading.Lock()
 #
 #def draw_page():
-#    global drawing
-#    global image
-#    global draw
-#    global oled
-#    global font
-#    global font14
-#    global smartFont
-#    global width
-#    global height
-#    global pageCount
-#    global pageIndex
-#    global showPageIndicator
-#    global width
-#    global height
-#    global lock
-#
-#    lock.acquire()
-#    is_drawing = drawing
-#    page_index = pageIndex
-#    lock.release()
-#
-#    if is_drawing:
-#        return
-#
-#    lock.acquire()
-#    drawing = True
-#    lock.release()
 #    
-#    # Draw a black filled box to clear the image.            
-#    draw.rectangle((0,0,width,height), outline=0, fill=0)
 #    # Draw current page indicator
 #    if showPageIndicator:
 #        dotWidth=4
@@ -216,24 +171,6 @@ class NanoHatOled(object):
 #    lock.release()
 #
 #
-#def is_showing_power_msgbox():
-#    global pageIndex
-#    lock.acquire()
-#    page_index = pageIndex
-#    lock.release()
-#    if page_index==3 or page_index==4:
-#        return True
-#    return False
-#
-#
-#def update_page_index(pi):
-#    global pageIndex
-#    lock.acquire()
-#    pageIndex = pi
-#    lock.release()
-#
-#
-#
 #image0 = Image.open('friendllyelec.png').convert('1')
 #oled.drawImage(image0)
 #time.sleep(2)
@@ -272,4 +209,5 @@ class NanoHatOled(object):
 #        print ("Error")
 
 if __name__ == "__main__":
-    print("Name is main.")
+    nanohat = NanoHatOled()
+    signal.pause()
