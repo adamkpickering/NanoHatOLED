@@ -118,39 +118,49 @@ class NanoHatOled(object):
         self.page = 1
         # display 'testing down...'
         text = "Testing down..."
-        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        self.draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do down test
-        client = iperf3.Client()
-        client.duration = self.iperf_duration
-        client.server_hostname = self.iperf_server
-        #client.port = 5201
-        client.reverse = True
-        result = client.run()
-        down = int(round(result.sent_Mbps))
+        down_client = iperf3.Client()
+        down_client.duration = self.iperf_duration
+        down_client.server_hostname = self.iperf_server
+        down_client.reverse = True
+        result = down_client.run()
+        #down = int(round(result.sent_Mbps))
+        down = result.sent_Mbps
         # display 'testing up'
         text = "Testing up..."
-        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        self.draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do up test
-        client.reverse = False
-        result = client.run()
-        up = int(round(result.sent_Mbps))
+        up_client = iperf3.Client()
+        up_client.duration = self.iperf_duration
+        up_client.server_hostname = self.iperf_server
+        up_client.reverse = False
+        result = up_client.run()
+        #up = int(round(result.sent_Mbps))
+        up = result.sent_Mbps
         # display 'testing jitter'
         text = "Testing jitter..."
-        self.draw.text((self.padding, self.padding+30), text,  font=self.font14b, fill=255)
+        self.draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         # do jitter test
-        jitter = "45"
+        j_client = iperf3.Client()
+        j_client.duration = self.iperf_duration
+        j_client.server_hostname = self.iperf_server
+        j_client.reverse = False
+        j_client.protocol = 'udp'
+        result = j_client.run()
+        jitter = result.jitter_ms
         # display results
-        text = "down: {0} Mbit/s".format(down)
+        text = "down: {:.0f} Mbit/s".format(down)
         self.draw.text((self.padding, self.padding), text,  font=self.font10b, fill=255)
-        text = "up: {0} Mbit/s".format(up)
+        text = "up: {:.0f} Mbit/s".format(up)
         self.draw.text((self.padding, self.padding+12), text,  font=self.font10b, fill=255)
-        text = "jitter: {0} ms".format(jitter)
+        text = "jitter: {:.3f} ms".format(jitter)
         self.draw.text((self.padding, self.padding+24), text,  font=self.font10b, fill=255)
         text = "ip"
         self.draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
@@ -162,8 +172,6 @@ class NanoHatOled(object):
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
 
-result = client.run()
-print(int(round(result.sent_Mbps)))
 
     def sdPage(self):
         """Shut down check page"""
