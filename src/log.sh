@@ -1,4 +1,5 @@
 #!/bin/bash
+# Simple script that does up/down iperf tests and logs results to a file with the date
 
 RESULTS_FOLDER="$PWD/results/"
 DATE=$(date "+%F")

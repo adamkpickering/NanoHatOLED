@@ -7,21 +7,35 @@ fi
 
 gcc src/daemonize.c src/main.c -lrt -lpthread -o NanoHatOLED
 
-if [ ! -f /usr/local/bin/oled-start ]; then
-    cat >/usr/local/bin/oled-start <<EOL
-#!/bin/sh
-EOL
-    echo "cd $PWD" >> /usr/local/bin/oled-start
-    echo "./NanoHatOLED" >> /usr/local/bin/oled-start
-    sed -i -e '$i \/usr/local/bin/oled-start\n' /etc/rc.local
-    chmod 755 /usr/local/bin/oled-start
+#if [ ! -f /usr/local/bin/oled-start ]; then
+#    cat >/usr/local/bin/oled-start <<EOL
+##!/bin/sh
+#EOL
+#    echo "cd $PWD" >> /usr/local/bin/oled-start
+#    echo "./NanoHatOLED" >> /usr/local/bin/oled-start
+#    sed -i -e '$i \/usr/local/bin/oled-start\n' /etc/rc.local
+#    chmod 755 /usr/local/bin/oled-start
+#fi
+
+if [ -f /usr/local/bin/oled-start ]; then
+    sudo rm /usr/local/bin/oled-start
 fi
 
+cat >/usr/local/bin/oled-start <<EOL
+#!/bin/sh
+EOL
+echo "cd $PWD" >> /usr/local/bin/oled-start
+echo "./NanoHatOLED" >> /usr/local/bin/oled-start
+sed -i '/oled-start/d' /etc/rc.local
+sed -i -e '$i \/usr/local/bin/oled-start' /etc/rc.local
+chmod 755 /usr/local/bin/oled-start
 
 if [ ! -f BakeBit/Script/install.sh ]; then
     git submodule init
     git submodule update
 fi
+
+sudo src/install.sh
 
 cd BakeBit/Script/
 sudo ./install.sh
