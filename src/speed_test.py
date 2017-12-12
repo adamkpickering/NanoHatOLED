@@ -171,8 +171,6 @@ class NanoHatOled(object):
         oled.drawImage(self.image)
         self.draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
 
-
-
     def sdPage(self):
         """Shut down check page"""
         # set page to 2

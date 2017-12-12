@@ -1,29 +1,22 @@
-## **NanoHat OLED**
+## **Speedtest Appliance**
 
-Example code of correct use and start for the NanoHat OLED.  
+This code is intended to be used as a flexible bandwidth tester.
 
 Designed specifically to work with the NanoHat OLED:
 http://wiki.friendlyarm.com/wiki/index.php/NanoHat_OLED
 
-Currently supported boards (Plug & Play):
-* NanoPi NEO
-* NanoPi NEO Air
-* NanoPi NEO2
-* NanoPi NEO Plus2.
-
-Also support other development board with the i2c interface (Need to manually connect).  
-
-
 Installation
 ------------
-Execute the following command in the Ubuntu core system:    
+Execute the following commands on the NEO2:    
 
 ```
-# git clone https://github.com/friendlyarm/NanoHatOLED.git
+# git clone https://github.com/adamkpickering/NanoHatOLED.git
 # cd NanoHatOLED
-# sudo -H ./install.sh
+# sudo ./install.sh
 ```
-The demo will automatically start at the next reboot.  
+This strips any previous installation of the NanoHat firmware and installs the version
+from the repository. The speedtest code should start upon reboot (which the install script
+performs automatically).
 
 ## License
 
