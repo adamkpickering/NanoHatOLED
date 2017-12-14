@@ -15,24 +15,42 @@ import socket
 import iperf3
 
 
+def check_lock_blocking(func):
+    """Decorator for functions that require lock to be free. Blocks until the lock is free."""
+    def wrapper(*args, **kwargs):
+        lock.acquire(1) # nonzero argument means blocking
+        func(*args, **kwargs)
+        lock.release()
+    return wrapper
+
+
+def check_lock_nonblocking(func):
+    """Decorator on functions that require lock to be free. If the lock is not free it
+       does not execute func."""
+    def wrapper(*args, **kwargs):
+        if lock.acquire(0): # zero argument means nonblocking
+            func(*args, **kwargs)
+            lock.release()
+    return wrapper
+
+
 class genericPage(object):
     """Defines the basic page object and the methods it should have."""
 
     def receive_signal(self, signal):
         print("method receive_signal not defined")
 
+    @check_lock_nonblocking
     def display(self):
         print("method display not defined")
 
     @check_lock_blocking
-    def change_page(self, page):
-        page = page(*args, **kwargs)
+    def change_page(self, new_page, *args, **kwargs):
+        page = new_page(*args, **kwargs)
 
-    def update_state(self):
-        print("method update_state not defined")
-
-    def update_page(self):
-        print("method update_page not defined")
+    @check_lock_blocking
+    def update_state(self, new_state):
+        self.state = new_state
 
 
 class mainPage(genericPage):
@@ -42,14 +60,17 @@ class mainPage(genericPage):
     def __init__(self):
         pass
 
-    def receive_signal(self, signal):
-        if signal == signal.SIGUSR1:
+    def __str__(self):
+        return "mainPage"
+
+    def receive_signal(self, signum):
+        if signum == signal.SIGUSR1:
             print("K1 pressed")
             pass
-        elif signal == signal.SIGUSR2:
+        elif signum == signal.SIGUSR2:
             print("K2 pressed")
             self.change_page(testPage)
-        elif signal == signal.SIGALRM:
+        elif signum == signal.SIGALRM:
             print("K3 pressed")
             self.change_page(shutdownPage)
 
@@ -64,8 +85,8 @@ class mainPage(genericPage):
         draw.text((51, 51), text, font=font10b, fill=255)
         text = "sd"
         draw.text((111, 51), text, font=font10b, fill=255)
-        oled.drawImage(self.nanohat.image)
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        oled.drawImage(image)
+        draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
     def _update_data(self):
         self.ip_addr = get_ip()
@@ -80,20 +101,23 @@ class testPage(genericPage):
         self.up = "waiting..."
         self.jitter = "waiting..."
 
-    def receive_signal(self, signal):
-        if signal == signal.SIGUSR1:
+    def __str__(self):
+        return "testPage"
+
+    def receive_signal(self, signum):
+        if signum == signal.SIGUSR1:
             print("K1 pressed")
             if self.state == 0:
                 self.state = 1
             elif self.state == 1:
                 pass
-        elif signal == signal.SIGUSR2:
+        elif signum == signal.SIGUSR2:
             print("K2 pressed")
             if self.state == 0:
                 pass
             elif self.state == 1:
                 pass
-        elif signal == signal.SIGALRM:
+        elif signum == signal.SIGALRM:
             print("K3 pressed")
             if self.state == 0:
                 self.change_page(mainPage)
@@ -110,7 +134,7 @@ class testPage(genericPage):
             text = "no"
             draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
             oled.drawImage(self.image)
-            draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+            draw.rectangle((0, 0, width, height), outline=0, fill=0)
         elif self.state == 1:
             text = "down: {0} Mbit/s".format(self.down)
             draw.text((1, 1), text,  font=font10b, fill=255)
@@ -125,7 +149,7 @@ class testPage(genericPage):
             text = "sd"
             draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
             oled.drawImage(self.image)
-            draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+            draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
     def _test(self):
         pass
@@ -134,51 +158,48 @@ class testPage(genericPage):
     def _change_state(self, new_state):
         self.state = new_state
 
-    def _update_data(self):
-        self.ip_addr = get_ip()
-
-    def testPage(self):
-        """Performs iperf test and displays results"""
-        # display 'testing down...'
-        text = "Testing down..."
-        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-        oled.drawImage(self.image)
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-        # do down test
-        down_client = iperf3.Client()
-        down_client.duration = self.iperf_duration
-        down_client.server_hostname = self.iperf_server
-        down_client.reverse = True
-        result = down_client.run()
-        #down = int(round(result.sent_Mbps))
-        down = result.sent_Mbps
-        # display 'testing up'
-        text = "Testing up..."
-        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-        oled.drawImage(self.image)
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-        # do up test
-        up_client = iperf3.Client()
-        up_client.duration = self.iperf_duration
-        up_client.server_hostname = self.iperf_server
-        up_client.reverse = False
-        result = up_client.run()
-        #up = int(round(result.sent_Mbps))
-        up = result.sent_Mbps
-        # display 'testing jitter'
-        text = "Testing jitter..."
-        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-        oled.drawImage(self.image)
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
-        # do jitter test
-        j_client = iperf3.Client()
-        j_client.duration = self.iperf_duration
-        j_client.server_hostname = self.iperf_server
-        j_client.reverse = False
-        j_client.protocol = 'udp'
-        result = j_client.run()
-        jitter = result.jitter_ms
-        # display results
+#    def testPage(self):
+#        """Performs iperf test and displays results"""
+#        # display 'testing down...'
+#        text = "Testing down..."
+#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
+#        oled.drawImage(self.image)
+#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+#        # do down test
+#        down_client = iperf3.Client()
+#        down_client.duration = self.iperf_duration
+#        down_client.server_hostname = self.iperf_server
+#        down_client.reverse = True
+#        result = down_client.run()
+#        #down = int(round(result.sent_Mbps))
+#        down = result.sent_Mbps
+#        # display 'testing up'
+#        text = "Testing up..."
+#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
+#        oled.drawImage(self.image)
+#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+#        # do up test
+#        up_client = iperf3.Client()
+#        up_client.duration = self.iperf_duration
+#        up_client.server_hostname = self.iperf_server
+#        up_client.reverse = False
+#        result = up_client.run()
+#        #up = int(round(result.sent_Mbps))
+#        up = result.sent_Mbps
+#        # display 'testing jitter'
+#        text = "Testing jitter..."
+#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
+#        oled.drawImage(self.image)
+#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+#        # do jitter test
+#        j_client = iperf3.Client()
+#        j_client.duration = self.iperf_duration
+#        j_client.server_hostname = self.iperf_server
+#        j_client.reverse = False
+#        j_client.protocol = 'udp'
+#        result = j_client.run()
+#        jitter = result.jitter_ms
+#        # display results
 
 
 class shutdownPage(genericPage):
@@ -188,25 +209,35 @@ class shutdownPage(genericPage):
     def __init__(self):
         pass
 
-    def sdPage(self):
-        """Shut down check page"""
-        # set page to 2
-        self.page = 2
-        # display page
-        text = "Shut down?"
-        draw.text((self.padding+20, self.padding+18), text,  font=self.font14b, fill=255)
-        text = "yes"
-        draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
-        text = "no"
-        draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
-        oled.drawImage(self.image)
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+    def __str__(self):
+        return "shutdownPage"
 
-    def shutDown(self):
+    def receive_signal(self, signum):
+        if signum == signal.SIGUSR1:
+            print("K1 pressed")
+            self._shut_down()
+        elif signum == signal.SIGUSR2:
+            print("K2 pressed")
+            pass
+        elif signum == signal.SIGALRM:
+            print("K3 pressed")
+            self.change_page(mainPage)
+
+    @check_lock_nonblocking
+    def display(self):
+        text = "Shut down?"
+        draw.text((21, 19), text,  font=font14b, fill=255)
+        text = "yes"
+        draw.text((4, 51), text,  font=font10b, fill=255)
+        text = "no"
+        draw.text((111, 51), text,  font=font10b, fill=255)
+        oled.drawImage(image)
+        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+
+    def _shut_down(self):
         """Actual shut down page"""
-        draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
+        draw.rectangle((0, 0, width, height), outline=0, fill=0)
         oled.drawImage(self.image)
-        #draw.rectangle((0, 0, self.width, self.height), outline=0, fill=0)
         os.system('sudo poweroff')
 
 
@@ -232,34 +263,17 @@ def get_ip():
     return IP
 
 
-def check_lock_blocking(func, *args, **kwargs):
-    """Decorator for functions that require lock to be free. Blocks until the lock is free."""
-    def wrapper(*args, **kwargs):
-        lock.acquire(1) # nonzero argument means blocking
-        func(*args, **kwargs)
-        lock.release()
-    return wrapper
-
-
-def check_lock_nonblocking(func):
-    """Decorator on functions that require lock to be free. If the lock is not free it
-       does not execute func."""
-    def wrapper(*args, **kwargs):
-        if lock.acquire(0): # zero argument means nonblocking
-            func(*args, **kwargs)
-            lock.release()
-    return wrapper
-
-
 def periodic_display():
     while True:
         page.display()
+        print(page)
         time.sleep(0.5)
 
 
 def receiveSignal(signum, stack):
     """Called whenever a signal is received."""
-    threading.Thread(target=page.receive_signal, args=[signum])
+    thread = threading.Thread(target=page.receive_signal, args=[signum])
+    thread.start()
 
 
 if __name__ == "__main__":
@@ -271,6 +285,7 @@ if __name__ == "__main__":
     iperf_duration = 10
     iperf_server = '192.168.1.72'
     lock = thread.allocate_lock()
+    print("constants initialized")
 
     # initialization of display
     image = Image.new('1', (width, height))
@@ -285,15 +300,17 @@ if __name__ == "__main__":
     oled.setHorizontalMode()
     telusSlogan()
     time.sleep(2)
+    print("oled initialized")
+    page = mainPage()
+    display_thread = threading.Thread(target=periodic_display)
+    display_thread.start()
+    print("display thread started")
 
     # assign receiveSignal to be called when buttons are pressed
     signal.signal(signal.SIGUSR1, receiveSignal) # button 1 (left)
     signal.signal(signal.SIGUSR2, receiveSignal) # button 2 (middle)
     signal.signal(signal.SIGALRM, receiveSignal) # button 3 (right)
-
-    page = mainPage()
-    # spawn display thread
-    threading.Thread(target=periodic_display)
+    print("signals registered")
 
     while True:
         signal.pause()
