@@ -5,6 +5,7 @@
 import bakebit_128_64_oled as oled
 from PIL import Image, ImageFont, ImageDraw
 import time
+import datetime
 import sys
 import subprocess
 import threading
@@ -46,10 +47,12 @@ class genericPage(object):
 
     @check_lock_blocking
     def change_page(self, new_page, *args, **kwargs):
+        global page
         page = new_page(*args, **kwargs)
+        print("page changed to {0}".format(page))
 
     @check_lock_blocking
-    def update_state(self, new_state):
+    def change_state(self, new_state):
         self.state = new_state
 
 
@@ -79,6 +82,8 @@ class mainPage(genericPage):
         self._update_data()
         text = "IP: {0}".format(self.ip_addr)
         draw.text((1, 1), text, font=font10b, fill=255)
+        text = "Time: {0}".format(self.time)
+        draw.text((1, 13), text,  font=font10b, fill=255)
         text = "ip"
         draw.text((4, 51), text, font=font10b, fill=255)
         text = "test"
@@ -90,6 +95,7 @@ class mainPage(genericPage):
 
     def _update_data(self):
         self.ip_addr = get_ip()
+        self.time = datetime.datetime.now().strftime("%H:%M:%S")
 
 
 class testPage(genericPage):
@@ -110,30 +116,30 @@ class testPage(genericPage):
             if self.state == 0:
                 self.state = 1
             elif self.state == 1:
-                pass
+                self.change_page(mainPage)
         elif signum == signal.SIGUSR2:
             print("K2 pressed")
             if self.state == 0:
                 pass
             elif self.state == 1:
-                pass
+                self.change_state(0)
         elif signum == signal.SIGALRM:
             print("K3 pressed")
             if self.state == 0:
                 self.change_page(mainPage)
             elif self.state == 1:
-                pass
+                self.change_page(shutdownPage)
 
     @check_lock_nonblocking
     def display(self):
         if self.state == 0:
             text = "Begin test?"
-            draw.text((1, 21), text,  font=self.font14b, fill=255)
+            draw.text((1, 21), text,  font=font14b, fill=255)
             text = "yes"
-            draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
+            draw.text((4, 51), text,  font=font10b, fill=255)
             text = "no"
-            draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
-            oled.drawImage(self.image)
+            draw.text((111, 51), text,  font=font10b, fill=255)
+            oled.drawImage(image)
             draw.rectangle((0, 0, width, height), outline=0, fill=0)
         elif self.state == 1:
             text = "down: {0} Mbit/s".format(self.down)
@@ -143,12 +149,12 @@ class testPage(genericPage):
             text = "jitter: {0} ms".format(self.jitter)
             draw.text((1, 25), text,  font=font10b, fill=255)
             text = "ip"
-            draw.text((self.padding+3, self.padding+50), text,  font=self.font10b, fill=255)
+            draw.text((4, 51), text,  font=font10b, fill=255)
             text = "test"
-            draw.text((self.padding+50, self.padding+50), text,  font=self.font10b, fill=255)
+            draw.text((51, 51), text,  font=font10b, fill=255)
             text = "sd"
-            draw.text((self.padding+110, self.padding+50), text,  font=self.font10b, fill=255)
-            oled.drawImage(self.image)
+            draw.text((111, 51), text,  font=font10b, fill=255)
+            oled.drawImage(image)
             draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
     def _test(self):
@@ -162,8 +168,8 @@ class testPage(genericPage):
 #        """Performs iperf test and displays results"""
 #        # display 'testing down...'
 #        text = "Testing down..."
-#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-#        oled.drawImage(self.image)
+#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
+#        oled.drawImage(image)
 #        draw.rectangle((0, 0, width, height), outline=0, fill=0)
 #        # do down test
 #        down_client = iperf3.Client()
@@ -175,8 +181,8 @@ class testPage(genericPage):
 #        down = result.sent_Mbps
 #        # display 'testing up'
 #        text = "Testing up..."
-#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-#        oled.drawImage(self.image)
+#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
+#        oled.drawImage(image)
 #        draw.rectangle((0, 0, width, height), outline=0, fill=0)
 #        # do up test
 #        up_client = iperf3.Client()
@@ -188,8 +194,8 @@ class testPage(genericPage):
 #        up = result.sent_Mbps
 #        # display 'testing jitter'
 #        text = "Testing jitter..."
-#        draw.text((self.padding, self.padding+20), text,  font=self.font14b, fill=255)
-#        oled.drawImage(self.image)
+#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
+#        oled.drawImage(image)
 #        draw.rectangle((0, 0, width, height), outline=0, fill=0)
 #        # do jitter test
 #        j_client = iperf3.Client()
@@ -237,7 +243,7 @@ class shutdownPage(genericPage):
     def _shut_down(self):
         """Actual shut down page"""
         draw.rectangle((0, 0, width, height), outline=0, fill=0)
-        oled.drawImage(self.image)
+        oled.drawImage(image)
         os.system('sudo poweroff')
 
 
@@ -266,8 +272,7 @@ def get_ip():
 def periodic_display():
     while True:
         page.display()
-        print(page)
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 def receiveSignal(signum, stack):
