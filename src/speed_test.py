@@ -14,6 +14,8 @@ import signal
 import os
 import socket
 import iperf3
+from subprocess import Popen, PIPE, STDOUT
+import re
 
 
 def check_lock_blocking(func):
@@ -107,32 +109,78 @@ class testPage(genericPage):
         self.up = "waiting..."
         self.jitter = "waiting..."
 
-    def __str__(self):
-        return "testPage"
-
     def receive_signal(self, signum):
         if signum == signal.SIGUSR1:
             print("K1 pressed")
             if self.state == 0:
-                self.state = 1
+                self.change_state(1)
+                self.thread = threading.Thread(target=self._start_test)
+                self.thread.start()
             elif self.state == 1:
+                pass
+            elif self.state == 2:
                 self.change_page(mainPage)
         elif signum == signal.SIGUSR2:
             print("K2 pressed")
             if self.state == 0:
                 pass
             elif self.state == 1:
-                self.change_state(0)
+                pass
+            elif self.state == 2:
+                self.change_page(testPage)
         elif signum == signal.SIGALRM:
             print("K3 pressed")
             if self.state == 0:
                 self.change_page(mainPage)
             elif self.state == 1:
+                pass
+            elif self.state == 2:
                 self.change_page(shutdownPage)
+
+#    @check_lock_blocking
+#    def change_state(self, new_state):
+#        """Overrides the generic change_state method in order to implement more complex logic"""
+#        if self.state == 0:
+#            if new_state == 1:
+#                # start new thread
+#                self.thread = threading.Thread(target=self._start_test_down)
+#                self.thread.start()
+#                self.state = new_state
+#        elif self.state == 1:
+#            if new_state == 2:
+#                pass
+#            elif new_state == 3:
+#                pass
+#        elif self.state == 2:
+#            if new_state == 3:
+#                pass
+#            elif new_state == 4:
+#                pass
+#        elif self.state == 3:
+#            if new_state == 4:
+#                pass
+#        elif self.state == 4:
+#            print("error: shouldn't be able to change state from state 4")
+            
+    def _start_test(self):
+        # conduct down test
+        regex = re.compile('([0-9]+) Mbits/sec')
+        cmd = "stdbuf -oL iperf3 -c 192.168.1.64 -R"
+        process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
+        with process.stdout:
+            for line in iter(process.stdout.readline, b''):
+                match = regex.search(line)
+                if match is not None:
+                    self.down = match.group(1) + " Mbit/s"
+        proc.wait()
+        # conduct up test
+        # conduct jitter test
+        # change to state 2
+        self.change_state(2)
 
     @check_lock_nonblocking
     def display(self):
-        if self.state == 0:
+        if self.state == 0: # ask user if they want to begin test
             text = "Begin test?"
             draw.text((1, 21), text,  font=font14b, fill=255)
             text = "yes"
@@ -141,28 +189,50 @@ class testPage(genericPage):
             draw.text((111, 51), text,  font=font10b, fill=255)
             oled.drawImage(image)
             draw.rectangle((0, 0, width, height), outline=0, fill=0)
-        elif self.state == 1:
-            text = "down: {0} Mbit/s".format(self.down)
+        elif self.state == 1: # testing down
+            text = "down: {0}".format(self.down)
             draw.text((1, 1), text,  font=font10b, fill=255)
-            text = "up: {0} Mbit/s".format(self.up)
+            text = "up: {0}".format(self.up)
             draw.text((1, 13), text,  font=font10b, fill=255)
-            text = "jitter: {0} ms".format(self.jitter)
+            text = "jitter: {0}".format(self.jitter)
             draw.text((1, 25), text,  font=font10b, fill=255)
+            text = "stop"
+            draw.text((20, 51), text,  font=font10b, fill=255)
+            oled.drawImage(image)
+            draw.rectangle((0, 0, width, height), outline=0, fill=0)
+        elif self.state == 2: # testing up
+            text = "down: {0}".format(self.down)
+            draw.text((1, 1), text,  font=font10b, fill=255)
+            text = "up: {0}".format(self.up)
+            draw.text((1, 13), text,  font=font10b, fill=255)
+            text = "jitter: {0}".format(self.jitter)
+            draw.text((1, 25), text,  font=font10b, fill=255)
+            text = "stop"
+            draw.text((20, 51), text,  font=font10b, fill=255)
+            oled.drawImage(image)
+            draw.rectangle((0, 0, width, height), outline=0, fill=0)
+        elif self.state == 3: # testing jitter
+            text = "down: {0}".format(self.down)
+            draw.text((1, 1), text,  font=font10b, fill=255)
+            text = "up: {0}".format(self.up)
+            draw.text((1, 13), text,  font=font10b, fill=255)
+            text = "jitter: {0}".format(self.jitter)
+            draw.text((1, 25), text,  font=font10b, fill=255)
+            text = "stop"
+            draw.text((20, 51), text,  font=font10b, fill=255)
+            oled.drawImage(image)
+            draw.rectangle((0, 0, width, height), outline=0, fill=0)
+        elif self.state == 4: # test either stopped or finished
             text = "ip"
             draw.text((4, 51), text,  font=font10b, fill=255)
             text = "test"
             draw.text((51, 51), text,  font=font10b, fill=255)
             text = "sd"
             draw.text((111, 51), text,  font=font10b, fill=255)
-            oled.drawImage(image)
-            draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
-    def _test(self):
-        pass
-
-    @check_lock_blocking
-    def _change_state(self, new_state):
-        self.state = new_state
+#    @check_lock_blocking
+#    def _change_state(self, new_state):
+#        self.state = new_state
 
 #    def testPage(self):
 #        """Performs iperf test and displays results"""
@@ -283,7 +353,7 @@ def receiveSignal(signum, stack):
 
 if __name__ == "__main__":
 
-    # initialization of constants
+    # initialization of "globals"
     width = 128
     height = 64
     padding = 1
