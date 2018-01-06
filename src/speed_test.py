@@ -153,7 +153,25 @@ class testPage(genericPage):
                     self.down = match.group(1) + " Mbit/s"
         process.wait()
         # conduct up test
+        regex = re.compile('([0-9]+) Mbits/s')
+        cmd = "stdbuf -oL iperf3 -c 192.168.1.64"
+        process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
+        with process.stdout:
+            for line in iter(process.stdout.readline, b''):
+                match = regex.search(line)
+                if match is not None:
+                    self.up = match.group(1) + " Mbit/s"
+        process.wait()
         # conduct jitter test
+        regex = re.compile(r'\s([0-9]+(\.[0-9]+)?) ms')
+        cmd = "stdbuf -oL iperf3 -c 192.168.1.64 -u -R"
+        process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
+        with process.stdout:
+            for line in iter(process.stdout.readline, b''):
+                match = regex.search(line)
+                if match is not None:
+                    self.jitter = match.group(1) + " ms"
+        process.wait()
         # change to state 2
         self.change_state(2)
 
@@ -192,7 +210,6 @@ class testPage(genericPage):
             draw.text((111, 51), text,  font=font10b, fill=255)
             oled.drawImage(image)
             draw.rectangle((0, 0, width, height), outline=0, fill=0)
-
 
 #    def testPage(self):
 #        """Performs iperf test and displays results"""
