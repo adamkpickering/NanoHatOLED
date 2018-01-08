@@ -1,6 +1,35 @@
 #!/usr/bin/env python
 #
+# This file contains the code for the speedtest appliance.
+# 
+# There are four threads to be aware of:
+# 
+# 1) The main thread
+# This thread initializes everything, starts up the other threads, and then
+# waits for signals sent to the process. Registered signals correspond to button
+# presses. When a signal is received it starts a thread of type 2 so that it can
+# receive another signal as soon as possible.
+# 
+# 2) Signal handling threads
+# These are started by the main thread upon receipt of a signal. They call the
+# "receive_signal" method of the current page, which looks at the current page and
+# state and takes an action. This action can be anything from a page change, to
+# a change of state (within a page), to starting a thread.
+# 
+# 3) Display thread
+# This thread is started by the main thread once, and runs for the entire program.
+# All it does is call the "display" method of the current page and then wait -
+# the "display" method writes an image to the OLED display. If there are variables that
+# are to be displayed on screen the "display" method incorporates them.
+# 
+# 4) Test thread
+# This thread is started by a signal handler thread when the user signals they want
+# to start a test. It runs the necessary tests, changing the corresponding variable
+# as results come in.
 #
+# The "check_lock_blocking" and "check_lock_nonblocking" decorators are used to wrap
+# functions that need access to the display. They prevent bad things from happening when
+# something about the display changes in the middle of the "display" method.
 
 import bakebit_128_64_oled as oled
 from PIL import Image, ImageFont, ImageDraw
@@ -28,7 +57,7 @@ def check_lock_blocking(func):
 
 
 def check_lock_nonblocking(func):
-    """Decorator on functions that require lock to be free. If the lock is not free it
+    """Decorator for functions that require lock to be free. If the lock is not free it
        does not execute func."""
     def wrapper(*args, **kwargs):
         if lock.acquire(0): # zero argument means nonblocking
@@ -210,49 +239,6 @@ class testPage(genericPage):
             draw.text((111, 51), text,  font=font10b, fill=255)
             oled.drawImage(image)
             draw.rectangle((0, 0, width, height), outline=0, fill=0)
-
-#    def testPage(self):
-#        """Performs iperf test and displays results"""
-#        # display 'testing down...'
-#        text = "Testing down..."
-#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
-#        oled.drawImage(image)
-#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
-#        # do down test
-#        down_client = iperf3.Client()
-#        down_client.duration = self.iperf_duration
-#        down_client.server_hostname = self.iperf_server
-#        down_client.reverse = True
-#        result = down_client.run()
-#        #down = int(round(result.sent_Mbps))
-#        down = result.sent_Mbps
-#        # display 'testing up'
-#        text = "Testing up..."
-#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
-#        oled.drawImage(image)
-#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
-#        # do up test
-#        up_client = iperf3.Client()
-#        up_client.duration = self.iperf_duration
-#        up_client.server_hostname = self.iperf_server
-#        up_client.reverse = False
-#        result = up_client.run()
-#        #up = int(round(result.sent_Mbps))
-#        up = result.sent_Mbps
-#        # display 'testing jitter'
-#        text = "Testing jitter..."
-#        draw.text((self.padding, self.padding+20), text,  font=font14b, fill=255)
-#        oled.drawImage(image)
-#        draw.rectangle((0, 0, width, height), outline=0, fill=0)
-#        # do jitter test
-#        j_client = iperf3.Client()
-#        j_client.duration = self.iperf_duration
-#        j_client.server_hostname = self.iperf_server
-#        j_client.reverse = False
-#        j_client.protocol = 'udp'
-#        result = j_client.run()
-#        jitter = result.jitter_ms
-#        # display results
 
 
 class shutdownPage(genericPage):
