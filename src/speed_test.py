@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#/usr/bin/env python
 #
 # This file contains the code for the speedtest appliance.
 # 
@@ -171,9 +171,10 @@ class testPage(genericPage):
                 self.change_page(shutdownPage)
 
     def _start_test(self):
+        iperf_server = "192.168.1.64"
         # conduct down test
         regex = re.compile('([0-9]+) Mbits/sec')
-        cmd = "stdbuf -oL iperf3 -c 192.168.1.64 -R"
+        cmd = "stdbuf -oL iperf3 -c {} -R".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
@@ -183,7 +184,7 @@ class testPage(genericPage):
         process.wait()
         # conduct up test
         regex = re.compile('([0-9]+) Mbits/s')
-        cmd = "stdbuf -oL iperf3 -c 192.168.1.64"
+        cmd = "stdbuf -oL iperf3 -c {}".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
@@ -193,7 +194,7 @@ class testPage(genericPage):
         process.wait()
         # conduct jitter test
         regex = re.compile(r'\s([0-9]+(\.[0-9]+)?) ms')
-        cmd = "stdbuf -oL iperf3 -c 192.168.1.64 -u -R"
+        cmd = "stdbuf -oL iperf3 -c {} -u -R".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
