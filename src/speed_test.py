@@ -290,17 +290,32 @@ def telusSlogan():
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
 
+#def get_ip():
+#    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#    try:
+#        # doesn't even have to be reachable
+#        s.connect(('10.255.255.255', 1))
+#        IP = s.getsockname()[0]
+#    except:
+#        IP = '127.0.0.1'
+#    finally:
+#        s.close()
+#    return IP
+
+
 def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
+    output = subprocess.check_output("ip addr", shell=True)
+    regex = re.compile('(eth[0-9]): ')
+    device = regex.search(output).group(1)
+    regex = re.compile('.*eth.*state ([A-Z]*).*')
+    link_state = regex.search(output).group(1)
+    if link_state == "UP":
+        output = subprocess.check_output("ip addr show {}".format(device), shell=True)
+        regex = re.compile('inet ([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})')
+        address = regex.search(output).group(1)
+        return address
+    elif link_state == "DOWN":
+        return "link down"
 
 
 def periodic_display():
