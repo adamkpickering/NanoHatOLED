@@ -35,14 +35,12 @@ import bakebit_128_64_oled as oled
 from PIL import Image, ImageFont, ImageDraw
 import time
 import datetime
-import sys
 import subprocess
 import threading
 import thread
 import signal
 import os
 import socket
-import iperf3
 from subprocess import Popen, PIPE, STDOUT
 import re
 
@@ -173,6 +171,11 @@ class testPage(genericPage):
     def _start_test(self):
         iperf_server = "192.168.1.64"
         # conduct down test
+        if not host_reachable(iperf_server):
+            self.down = "error"
+            self.up = "error"
+            self.jitter = "error"
+            self.change_state(2)
         regex = re.compile('([0-9]+) Mbits/sec')
         cmd = "stdbuf -oL iperf3 -c {} -R".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
@@ -183,6 +186,10 @@ class testPage(genericPage):
                     self.down = match.group(1) + " Mbit/s"
         process.wait()
         # conduct up test
+        if not host_reachable(iperf_server):
+            self.up = "error"
+            self.jitter = "error"
+            self.change_state(2)
         regex = re.compile('([0-9]+) Mbits/s')
         cmd = "stdbuf -oL iperf3 -c {}".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
@@ -193,6 +200,9 @@ class testPage(genericPage):
                     self.up = match.group(1) + " Mbit/s"
         process.wait()
         # conduct jitter test
+        if not host_reachable(iperf_server):
+            self.jitter = "error"
+            self.change_state(2)
         regex = re.compile(r'\s([0-9]+(\.[0-9]+)?) ms')
         cmd = "stdbuf -oL iperf3 -c {} -u -R".format(iperf_server)
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
@@ -316,6 +326,14 @@ def get_ip():
         return address
     elif link_state == "DOWN":
         return "link down"
+
+
+def host_reachable(host):
+    try:
+        output = subprocess.check_output("ping -c 1 -W 2 {}".format(host), shell=True)
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 def periodic_display():
