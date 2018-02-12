@@ -322,7 +322,10 @@ def get_ip():
     if link_state == "UP":
         output = subprocess.check_output("ip addr show {}".format(device), shell=True)
         regex = re.compile('inet ([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})')
-        address = regex.search(output).group(1)
+        try:
+            address = regex.search(output).group(1)
+        except:
+            return "link down"
         return address
     elif link_state == "DOWN":
         return "link down"
