@@ -168,16 +168,18 @@ class testPage(genericPage):
             elif self.state == 2:
                 self.change_page(shutdownPage)
 
+
     def _start_test(self):
-        iperf_server = "192.168.1.64"
+        iperf_server = "192.168.1.101"
         # conduct down test
         if not host_reachable(iperf_server):
             self.down = "error"
             self.up = "error"
             self.jitter = "error"
             self.change_state(2)
-        regex = re.compile('([0-9]+) Mbits/sec')
-        cmd = "stdbuf -oL iperf3 -c {} -R".format(iperf_server)
+        regex = re.compile('^\[SUM\].*\s+([0-9]+) Mbits/sec.*$')
+        cmd = "stdbuf -oL iperf3 -P 4 -R -c {}".format(iperf_server)
+        print("testing down")
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
@@ -190,8 +192,9 @@ class testPage(genericPage):
             self.up = "error"
             self.jitter = "error"
             self.change_state(2)
-        regex = re.compile('([0-9]+) Mbits/s')
-        cmd = "stdbuf -oL iperf3 -c {}".format(iperf_server)
+        regex = re.compile('^\[SUM\].*\s+([0-9]+) Mbits/sec.*$')
+        cmd = "stdbuf -oL iperf3 -P 4 -c {}".format(iperf_server)
+        print("testing up")
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
@@ -205,6 +208,7 @@ class testPage(genericPage):
             self.change_state(2)
         regex = re.compile(r'\s([0-9]+(\.[0-9]+)?) ms')
         cmd = "stdbuf -oL iperf3 -c {} -u -R".format(iperf_server)
+        print("testing jitter")
         process = Popen(cmd, shell=True, stdin=None, stdout=PIPE, stderr=STDOUT)
         with process.stdout:
             for line in iter(process.stdout.readline, b''):
