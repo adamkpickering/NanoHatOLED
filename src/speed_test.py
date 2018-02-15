@@ -170,7 +170,7 @@ class testPage(genericPage):
 
 
     def _start_test(self):
-        iperf_server = "192.168.1.101"
+        iperf_server = "207.34.75.194"
         # conduct down test
         if not host_reachable(iperf_server):
             self.down = "error"
