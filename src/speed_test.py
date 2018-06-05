@@ -45,22 +45,30 @@ from subprocess import Popen, PIPE, STDOUT
 import re
 
 
-def check_lock_blocking(func):
-    """Decorator for functions that require lock to be free. Blocks until the lock is free."""
-    def wrapper(*args, **kwargs):
-        lock.acquire(1) # nonzero argument means blocking
-        func(*args, **kwargs)
-        lock.release()
-    return wrapper
-
-
 def check_lock_nonblocking(func):
     """Decorator for functions that require lock to be free. If the lock is not free it
        does not execute func."""
     def wrapper(*args, **kwargs):
         if lock.acquire(0): # zero argument means nonblocking
+            try:
+                func(*args, **kwargs)
+                lock.release()
+            except:
+                lock.release()
+                raise
+    return wrapper
+
+
+def check_lock_blocking(func):
+    """Decorator for functions that require lock to be free. Blocks until the lock is free."""
+    def wrapper(*args, **kwargs):
+        lock.acquire(1) # nonzero argument means blocking
+        try:
             func(*args, **kwargs)
             lock.release()
+        except:
+            lock.release()
+            raise
     return wrapper
 
 
